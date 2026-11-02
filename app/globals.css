@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+:root {
+  --bg: 10 10 15;
+  --fg: 240 240 245;
+  --accent: 16 185 129;
+  --accent-2: 6 182 212;
+  --muted: 100 116 139;
+  --border: 30 41 59;
+  --card: 15 15 25;
+}
+.dark {
+  --bg: 10 10 15;
+  --fg: 240 240 245;
+}
+@theme inline {
+  --color-background: rgb(var(--bg));
+  --color-foreground: rgb(var(--fg));
+  --color-accent: rgb(var(--accent));
+  --color-accent-2: rgb(var(--accent-2));
+  --color-muted: rgb(var(--muted));
+  --color-border: rgb(var(--border));
+  --color-card: rgb(var(--card));
+}
+body { background: rgb(var(--bg)); color: rgb(var(--fg)); }
+.glass { background: rgba(15,15,25,0.6); backdrop-filter: blur(16px); border: 1px solid rgba(59,130,246,0.15); border-radius: 1rem; }
+* { border-color: rgb(var(--border)); }
+.font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.glass { background: rgba(15,15,25,0.7); backdrop-filter: blur(16px); border: 1px solid rgba(59,130,246,0.15); }

