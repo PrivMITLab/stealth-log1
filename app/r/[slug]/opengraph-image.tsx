@@ -6,8 +6,9 @@ export const alt = "Sentinel link preview";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default async function Image({ params }: { params: { slug: string } }) {
-  const rows = await db.select().from(schema.links).where(eq(schema.links.slug, params.slug));
+export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const rows = await db.select().from(schema.links).where(eq(schema.links.slug, slug));
   const link = rows[0];
   const title = link?.title || "Sentinel Link";
   const host = link ? new URL(link.destinationUrl).hostname : "sentinel";
@@ -17,7 +18,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
         <div style={{ fontSize: 28, color: "#10b981", marginBottom: 20 }}>Sentinel</div>
         <div style={{ fontSize: 64, fontWeight: 800, lineHeight: 1.1, marginBottom: 30 }}>{title}</div>
         <div style={{ fontSize: 28, color: "#94a3b8" }}>{host}</div>
-        <div style={{ fontSize: 20, color: "#64748b", marginTop: 40 }}>/r/{params.slug}</div>
+        <div style={{ fontSize: 20, color: "#64748b", marginTop: 40 }}>/r/{slug}</div>
       </div>
     ),
     size

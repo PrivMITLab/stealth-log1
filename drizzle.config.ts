@@ -1,6 +1,4 @@
 import { defineConfig } from "drizzle-kit";
-import { config } from "dotenv";
-config();
 const url = process.env.DATABASE_URL || "file:./data/app.db";
 const isPg = url.startsWith("postgres://") || url.startsWith("postgresql://");
 export default defineConfig({

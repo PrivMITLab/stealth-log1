@@ -1,25 +1,37 @@
-version: "3.9"
 services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: stealth
-      POSTGRES_PASSWORD: stealth
-      POSTGRES_DB: stealthlog
-    ports: ["5432:5432"]
-    volumes: ["pgdata:/var/lib/postgresql/data"]
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel
+      POSTGRES_DB: sentinel
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   app:
     build: .
     environment:
       NODE_ENV: production
-      PORT: 3000
-      DB_TYPE: postgres
-      DATABASE_URL: postgres://stealth:stealth@db:5432/stealthlog
-      JWT_SECRET: change-me-in-production
-      ADMIN_USERNAME: admin
-      ADMIN_PASSWORD: change-me-strong
-      REDIRECT_URL: https://www.google.com
-    ports: ["3000:3000"]
-    depends_on: [db]
+      APP_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      DATABASE_URL: postgres://sentinel:sentinel@db:5432/sentinel
+      DATABASE_PROVIDER: postgres
+      AUTH_SECRET: ${AUTH_SECRET:-change-me-32-char-minimum-secret-value}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@sentinel.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMeStrong123!}
+      SEED_ON_BOOT: "true"
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   pgdata:

@@ -1,4 +1,3 @@
-import "server-only";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { env, getBaseUrl } from "@/lib/env";

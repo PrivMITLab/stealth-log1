@@ -1,4 +1,3 @@
-import "server-only";
 import { cookies } from "next/headers";
 import { env } from "@/lib/env";
 import { db, schema } from "@/lib/db";
@@ -51,9 +50,10 @@ export async function getSessionUser() {
 
 export async function setSessionCookie(token: string): Promise<void> {
   const c = await cookies();
+  const secure = (env.APP_URL || "").startsWith("https://");
   c.set("session", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure,
     sameSite: "lax",
     path: "/",
     maxAge: env.SESSION_TTL_DAYS * 86400,

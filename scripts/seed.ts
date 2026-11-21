@@ -1,4 +1,11 @@
-import "dotenv/config";
+import { readFileSync } from "node:fs";
+try {
+  for (const line of readFileSync(".env", "utf8").split(/\r?\n/)) {
+    const m = line.match(/^([A-Z_]+)=(.*)$/);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
+  }
+} catch {}
+import crypto from "node:crypto";
 import { db, schema } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { env } from "@/lib/env";
@@ -17,8 +24,7 @@ async function main() {
   const adminEmail = env.ADMIN_EMAIL || "admin@sentinel.local";
   const adminPass = process.env.ADMIN_PASSWORD || "ChangeMeStrong123!";
   const adminId = crypto.randomUUID();
-  const { createHash } = await import("node:crypto");
-  const crypto = await import("node:crypto");
+  const createHash = crypto.createHash.bind(crypto);
   await db.insert(schema.users).values({
     id: adminId,
     email: adminEmail,

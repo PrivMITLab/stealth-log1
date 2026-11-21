@@ -20,9 +20,10 @@ async function logClick(linkId: string, reqHeaders: Headers) {
   } catch {}
 }
 
-export default async function RedirectPage({ params, searchParams }: { params: { slug: string }; searchParams: { p?: string } }) {
+export default async function RedirectPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const h = await headers();
-  const rows = await db.select().from(schema.links).where(eq(schema.links.slug, params.slug));
+  const rows = await db.select().from(schema.links).where(eq(schema.links.slug, slug));
   const link = rows[0];
   if (!link) return <div className="p-8 text-center">Link not found.</div>;
   if (!link.active) return <div className="p-8 text-center">This link is disabled.</div>;
@@ -37,7 +38,7 @@ export default async function RedirectPage({ params, searchParams }: { params: {
       // check submitted password via searchParams? handle via form POST instead
       return (
         <main className="min-h-screen flex items-center justify-center p-4">
-          <form method="POST" action={`/r/${params.slug}/unlock`} className="glass p-8 space-y-4 w-full max-w-md">
+          <form method="POST" action={`/r/${slug}/unlock`} className="glass p-8 space-y-4 w-full max-w-md">
             <h1 className="text-xl font-bold">Password required</h1>
             <input name="password" type="password" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2" />
             <button className="w-full bg-emerald-600 hover:bg-emerald-500 py-2 rounded-lg">Continue</button>
